@@ -32,3 +32,13 @@ def makePesonalArticle(
 
     # JSON 응답으로 반환
     return json.loads(json_string) # FastAPI가 자동으로 JSON 변환
+
+@router.get("/chat")
+def makePesonalArticle(
+    question: str = Query(..., description="주제"),
+    sessionId: str = Query(..., description="세션 ID")
+):
+    answer= llm.get_chat_bot(question).text()
+
+    # JSON 응답으로 반환
+    return {"answer": answer}  # FastAPI가 자동으로 JSON 변환
