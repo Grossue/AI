@@ -1,134 +1,162 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FastAPI 테스트</title>
     <style>
-        body { 
-            font-family: 'Arial', sans-serif; 
-            margin: 20px; 
-            background-color: #f4f4f9; 
-            display: flex; 
-            justify-content: space-between; 
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: space-between;
         }
-        h2 { color: #333; }
+
+        h2 {
+            color: #333;
+        }
+
         .container {
             display: flex;
             width: 100%;
             gap: 20px;
         }
-        .left-side, .right-side {
+
+        .left-side,
+        .right-side {
             padding: 20px;
             flex: 1;
         }
+
         .input-container {
             display: flex;
-            gap: 10px; 
+            gap: 10px;
             margin-top: 20px;
         }
-        select { 
-            padding: 10px; 
-            border: 2px solid #ccc; 
-            border-radius: 25px; 
+
+        select {
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 25px;
             font-size: 16px;
             transition: border-color 0.3s ease;
         }
+
         input {
-        flex: 1; 
-        padding: 10px; 
-        border: 2px solid #ccc; 
-        border-radius: 25px; 
-        font-size: 16px;
-        transition: border-color 0.3s ease;
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
         }
-        input:focus, select:focus {
+
+        input:focus,
+        select:focus {
             border-color: #007bff;
             outline: none;
         }
-        button { 
-            padding: 5px 20px; 
-            background-color: #007bff; 
-            color: black; 
-            border: none; 
-            border-radius: 25px; 
+
+        button {
+            padding: 5px 20px;
+            background-color: #007bff;
+            color: black;
+            border: none;
+            border-radius: 25px;
             font-size: 16px;
-            cursor: pointer; 
+            cursor: pointer;
             transition: background-color 0.3s ease;
             white-space: nowrap;
         }
-        button:hover { 
-            background-color: #0056b3; 
-            color: white; 
+
+        button:hover {
+            background-color: #0056b3;
+            color: white;
         }
-        button:disabled { 
-            background-color: #cccccc; 
-            cursor: not-allowed; 
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
+
         .chat-box {
-            background: #e3f2fd; 
-            padding: 15px; 
-            border-radius: 10px; 
-            margin-top: 10px; 
-            width: fit-content; 
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            width: fit-content;
             max-width: 80%;
             margin-bottom: 10px;
         }
+
         .chat-box.bot {
             background: #e1f5fe;
             align-self: flex-start;
         }
+
         .chat-box.user {
             background: #c8e6c9;
             align-self: flex-end;
         }
+
         .chat-box strong {
-            display: block; 
+            display: block;
             font-weight: bold;
         }
+
         .quiz-box {
-            background: white; 
-            padding: 10px; 
-            border-radius: 5px; 
-            margin-top: 10px; 
-            border-top: 2px solid #007bff; 
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-top: 2px solid #007bff;
         }
-        .quiz-question { 
-            font-weight: bold; 
-            margin-top: 10px; 
+
+        .quiz-question {
+            font-weight: bold;
+            margin-top: 10px;
         }
+
         .quiz-option {
-            display: block; 
-            padding: 8px; 
-            margin-top: 5px; 
+            display: block;
+            padding: 8px;
+            margin-top: 5px;
             border-radius: 4px;
-            border: 1px solid #ccc; 
-            background: rgb(250, 250, 250); 
+            border: 1px solid #ccc;
+            background: rgb(250, 250, 250);
             cursor: pointer;
-            transition: background-color 0.3s ease; 
+            transition: background-color 0.3s ease;
         }
+
         .quiz-option:hover {
             background-color: #007bff;
             color: white;
         }
-        .quiz-option.correct { 
-            background: #28a745; 
-            color: white; 
+
+        .quiz-option.correct {
+            background: #28a745;
+            color: white;
         }
-        .quiz-option.wrong { 
-            background: #dc3545; 
-            color: white; 
+
+        .quiz-option.wrong {
+            background: #dc3545;
+            color: white;
         }
+
         .loading {
             text-align: center;
             font-size: 20px;
             color: #007bff;
             padding: 20px;
         }
+
         .loading span {
             font-weight: bold;
             color: #007bff;
         }
+
         .source-btn {
             padding: 10px 20px;
             background-color: #ff8c00;
@@ -140,15 +168,18 @@
             margin: 5px;
             transition: transform 0.3s ease, background-color 0.3s ease;
         }
+
         .source-btn:hover {
             background-color: #f57c00;
             transform: scale(1.05);
         }
+
         .source-btn:active {
             transform: scale(1);
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
@@ -187,7 +218,8 @@
 
             const startTime = new Date().getTime();
             articleButton.disabled = true;
-            articleResult.innerHTML = '<div class="loading"><span>로딩 중...</span><br><span id="loadingTime">0.00</span> 초</div>';
+            articleResult.innerHTML =
+                '<div class="loading"><span>로딩 중...</span><br><span id="loadingTime">0.00</span> 초</div>';
 
             let loadingTime = 0;
             const interval = setInterval(() => {
@@ -196,7 +228,9 @@
             }, 100);
 
             try {
-                const response = await fetch(`http://127.0.0.1:8000/v1/create?topic=${encodeURIComponent(topic)}&sessionId=${sessionId}&level=${level}`);
+                const response = await fetch(
+                    `http://127.0.0.1:8000/v1/create?topic=${encodeURIComponent(topic)}&sessionId=${sessionId}&level=${level}`
+                    );
                 const data = await response.json();
 
                 clearInterval(interval);
@@ -205,10 +239,12 @@
                 data.quiz.forEach((q, index) => {
                     quizHtml += `<div class="quiz-question">${index + 1}. ${q.question}</div>`;
                     q.options.forEach((option, optIndex) => {
-                        quizHtml += `<button class="quiz-option" onclick="checkAnswer(this, ${optIndex}, ${q.correct_answer})">${option}</button>`;
+                        quizHtml +=
+                            `<button class="quiz-option" onclick="checkAnswer(this, ${optIndex}, ${q.correct_answer})">${option}</button>`;
                     });
                 });
                 quizHtml += '</div>';
+
 
                 articleResult.innerHTML = ` 
                     <div class="result-box">
@@ -221,6 +257,19 @@
                         </div>
                     </div>
                 `;
+
+                articleResult.innerHTML = ` 
+    <div class="result-box">
+        <p style="color: gray; font-size: 14px;">⏱ 생성 시간: ${loadingTime}초</p>
+        <h3>📌 ${data.title}</h3>
+        <img src="${data.image_url}" alt="관련 이미지" style="width: 100%; border-radius: 10px; margin-top: 10px;">
+        <p>${data.article.replace(/\n/g, '<br>')}</p>
+        ${quizHtml}
+        <div>
+            ${data.url.map(link => `<a class="source-btn" href="${link}" target="_blank">🔗 출처 보기</a>`).join(" ")}
+        </div>
+    </div>
+`;
             } catch (error) {
                 console.error("Article 요청 실패:", error);
             } finally {
@@ -244,7 +293,9 @@
             const sessionId = 1;
 
             try {
-                const response = await fetch(`http://127.0.0.1:8000/v1/chat?question=${encodeURIComponent(question)}&sessionId=${sessionId}`);
+                const response = await fetch(
+                    `http://127.0.0.1:8000/v1/chat?question=${encodeURIComponent(question)}&sessionId=${sessionId}`
+                    );
                 const data = await response.json();
 
                 const userMessage = `
@@ -259,7 +310,8 @@
                 `;
 
                 document.getElementById("chatResult").innerHTML += userMessage + botMessage;
-                document.getElementById("chatResult").scrollTop = document.getElementById("chatResult").scrollHeight;
+                document.getElementById("chatResult").scrollTop = document.getElementById("chatResult")
+                .scrollHeight;
             } catch (error) {
                 console.error("Chat 요청 실패:", error);
             }
@@ -267,4 +319,5 @@
     </script>
 
 </body>
+
 </html>
