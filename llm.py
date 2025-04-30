@@ -231,4 +231,63 @@ def get_ai_response(user_message,level):
   
   return ai_response,urls,image
 
+def get_chat_bot(user_message):
+  
+  llm = get_llm()
 
+  rag_chain = get_qna_rag_chain(llm) 
+
+  ai_response = rag_chain.invoke( 
+    {
+      "input": user_message
+    },
+    config={
+          "configurable": {"session_id": "abc123"}
+    }, 
+    )
+
+  return ai_response
+
+def get_qna_rag_chain(llm):
+  example_prompt = ChatPromptTemplate.from_messages(
+      [
+          ("human", "{input}"),
+          
+          ("ai", "{answer}"),
+      ]
+  )
+  few_shot_prompt = FewShotChatMessagePromptTemplate(
+      example_prompt=example_prompt,
+      examples= qna_examples,
+  )
+
+  system_prompt = (
+      "당신은 방금전에 글과 퀴즈를 생성했습니다. "
+      "이후 사용자가 해당 글과 퀴즈에 대해 궁금한 점을 물어보거나 당신의 생각을 물어볼 예정입니다."
+      "질문에 답변해 주세요. "
+      "필요할 경우에만 찾은 문서를 활용하도록 합니다. "
+      "만약 당신이 생성한 글이 아닌 찾은 문서 내용을 바탕으로 답변을 해야한다면, '다른 기사 내용을 따르면,' 이라는 문구를 붙여 답변해 주세요. "
+      "\n\n"
+      #"{context}"
+  )
+  
+  qa_prompt = ChatPromptTemplate.from_messages(
+      [
+          ("system", system_prompt),  
+          few_shot_prompt,
+          MessagesPlaceholder("chat_history"), 
+          ("human", "{input}"), 
+      ]
+  )
+
+  llm_chain = RunnableSequence(qa_prompt, llm)
+
+  conversational_rag_chain = RunnableWithMessageHistory(
+      llm_chain,
+      get_session_history,  
+      input_messages_key="input",  
+      history_messages_key="chat_history",  
+      output_messages_key="answer", 
+  )
+
+  return conversational_rag_chain
