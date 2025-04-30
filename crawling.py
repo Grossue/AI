@@ -106,7 +106,7 @@ for article_div in soup.select(".sa_item_inner"):
         post_time_str = None
 
     # 시간 차이를 계산하고 "3시간 전" 이내의 기사만 필터링
-    if post_time_str and time_diff_in_minutes(post_time_str) <= 180000000:  # 180분(3시간) 이내의 기사만
+    if post_time_str and time_diff_in_minutes(post_time_str) <= 180000000:  # 180이면 -> 180분(3시간) 이내의 기사만
         articles.append({
             "title": title_tag.get_text() if title_tag else None,
             "link": article_link,
@@ -178,18 +178,19 @@ for article in articles:
         #print(f"   설명: {img['desc']}\n")
     print("\n\n#######################################################################\n\n")
     
+
+    # 벡터 디비(Pinecone)에 저장
+
     id = hash(url)
-    url = url
     vector = get_embedding(title_text)
 
-    # Pinecone에 벡터 저장
     # index.upsert([(str(id), vector)])
     metadata = {
         'title' : title_text,
         'content': content,
         'date_time' : article_date_time,
         'url': url,
-        'image' : images[0]['url'] if images else ''
+        'image' : images[0]['url'] if images else '' # 이미지 그냥 첫번째 이미지 한장만 저장
     }
     
     # Pinecone에 벡터 저장
