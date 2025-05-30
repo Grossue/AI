@@ -18,6 +18,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # LangChain Chains 관련 모듈
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import RetrievalQA, LLMChain, create_history_aware_retriever, create_retrieval_chain
 
 # LangChain Community 모듈
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -98,11 +99,16 @@ def get_rag_chain(llm,level,type):
   question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
   #rag_chain = create_retrieval_chain(retriever, question_answer_chain) 
-  
+  llm_chain = (
+        question_answer_chain
+        | (lambda text: {"answer": text})
+  )
+
   # RunnableWithMessageHistory : 세션별로 대화 기록을 유지해줌.
   conversational_rag_chain = RunnableWithMessageHistory(
-        question_answer_chain,
+        #question_answer_chain,
         #rag_chain,
+        llm_chain,
         get_session_history,
         input_messages_key="input",
         history_messages_key="chat_history",
@@ -111,7 +117,7 @@ def get_rag_chain(llm,level,type):
   return conversational_rag_chain
 
 
-def get_ai_response(user_message,level,type):
+def get_ai_response(user_message,level,type,sessionId):
   
   llm = get_llm()
 
@@ -151,8 +157,6 @@ def get_ai_response(user_message,level,type):
 
     # 수정된 content 반영
     doc.page_content = updated_content
-    print(doc.metadata["title"])
-    print(doc.page_content)
 
   ai_response = rag_chain.invoke(
     {
@@ -160,13 +164,18 @@ def get_ai_response(user_message,level,type):
       "context" : docs
     },
     config={
-          "configurable": {"session_id": "abc123"}
+          "configurable": { "session_id": sessionId }
     }, 
     )
-  print(ai_response)
-  return ai_response,urls,image
+  
+  return ai_response["answer"],urls,image
 
-def get_chat_bot(user_message):
+def exist_session(sessionId):
+  if sessionId not in store:
+    raise KeyError(f"'{sessionId}'라는 키는 존재하지 않습니다.")
+
+def get_chat_bot(user_message,sessionId):
+  exist_session(sessionId)
   
   llm = get_llm()
 
@@ -177,11 +186,11 @@ def get_chat_bot(user_message):
       "input": user_message
     },
     config={
-          "configurable": {"session_id": "abc123"}
+          "configurable": {"session_id": sessionId }
     }, 
     )
 
-  return ai_response
+  return ai_response["answer"]
 
 def get_qna_rag_chain(llm):
   example_prompt = ChatPromptTemplate.from_messages(
@@ -215,7 +224,12 @@ def get_qna_rag_chain(llm):
       ]
   )
 
-  llm_chain = RunnableSequence(qa_prompt, llm)
+  #llm_chain = RunnableSequence(qa_prompt, llm)
+  llm_chain = (
+        qa_prompt
+        | llm
+        | (lambda text: {"answer": text})
+  )
 
   conversational_rag_chain = RunnableWithMessageHistory(
       llm_chain,
@@ -226,3 +240,13 @@ def get_qna_rag_chain(llm):
   )
 
   return conversational_rag_chain
+
+def get_store():
+  print(store)
+  return store
+
+def delete_history(sessionId):
+  if sessionId in store:
+    del store[sessionId]
+  else:
+    raise KeyError(f"'{sessionId}'라는 키는 존재하지 않습니다.")
