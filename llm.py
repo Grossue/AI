@@ -24,16 +24,28 @@ from langchain.chains import RetrievalQA, LLMChain, create_history_aware_retriev
 from langchain_community.chat_message_histories import ChatMessageHistory
 from prompts import level_1, level_2, system_prompt_general, system_prompt_scripts
 
+
+#from langchain_community.chat_message_histories import RedisChatMessageHistory
+from redis_chat_message_history_custom import RedisChatMessageHistory
+import redis
+from redis_client import redis_client
+
 store = {}
 
 def get_llm(model="gpt-4o"):
   llm = ChatOpenAI(model=model)
   return llm
 
+
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
+    # Redis 기반 메시지 히스토리 객체를 반환
+    # Redis 연결 설정 -> 커스텀하여 사용
+    return RedisChatMessageHistory(session_id=session_id, redis_client=redis_client,ttl=86400)
+
+# def get_session_history(session_id: str) -> BaseChatMessageHistory:
+#     if session_id not in store:
+#         store[session_id] = ChatMessageHistory()
+#     return store[session_id]
 
 
 def get_retriever():
@@ -43,7 +55,7 @@ def get_retriever():
   
   database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding, text_key="content")
   
-  retriever = database.as_retriever(search_kwargs={'k': 2})
+  retriever = database.as_retriever(search_kwargs={'k': 8})
 
   return retriever
 
@@ -170,9 +182,14 @@ def get_ai_response(user_message,level,type,sessionId):
   
   return ai_response["answer"],urls,image
 
-def exist_session(sessionId):
-  if sessionId not in store:
-    raise KeyError(f"'{sessionId}'라는 키는 존재하지 않습니다.")
+# def exist_session(sessionId):
+#   if sessionId not in store:
+#     raise KeyError(f"'{sessionId}'라는 키는 존재하지 않습니다.")
+
+def exist_session(session_id: str):
+    key = f"message_store:{session_id}"  # 실제 Redis에 저장된 키 형식과 맞춰야 합니다
+    if not redis_client.exists(key):
+        raise KeyError(f"'{session_id}'라는 키는 존재하지 않습니다.")
 
 def get_chat_bot(user_message,sessionId):
   exist_session(sessionId)
