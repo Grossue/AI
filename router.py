@@ -2,12 +2,13 @@ from fastapi import APIRouter, Query
 import llm
 import json
 import re
-from typing import Any, Optional
 from make_response import make_json_response
+
 
 router = APIRouter(
     prefix="/v1",
 )
+
 
 @router.get("/create")
 def makePesonalArticle(
@@ -99,3 +100,5 @@ def makePesonalArticle(
             data = json.load(f)
 
     return make_json_response(data= data)
+
+
