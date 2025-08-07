@@ -55,7 +55,7 @@ def get_retriever():
   
   database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding, text_key="content")
   
-  retriever = database.as_retriever(search_kwargs={'k': 8})
+  retriever = database.as_retriever(search_kwargs={'k': 3})
 
   return retriever
 
@@ -71,12 +71,12 @@ def get_rag_chain(llm,level,type):
 
   # FewShotChatMessagePromptTemplate : 질문/답변 예시들을 포함하는 few-shot 학습 형식 프롬프트
   few_shot_prompt = FewShotChatMessagePromptTemplate(
-      example_prompt=example_prompt,
-      examples = create_article_examples if type == "GENERAL" else create_article_script_examples
+      example_prompt = example_prompt,
+      examples = create_article_examples_LEVEL1 if (type == "GENERAL" and level == "level1") else (create_article_examples_LEVEL2 if type == "GENERAL" else create_article_script_examples)
+      #create_article_examples if type == "GENERAL" else create_article_script_examples
   )
 
   system_prompt = system_prompt_general if type== "GENERAL" else system_prompt_scripts
-
 
 
   # 레벨에 따라 system_prompt 앞에 추가
@@ -87,23 +87,28 @@ def get_rag_chain(llm,level,type):
 
   # 시스템 메시지 + 예시 + 히스토리 + 사용자 질문 으로 구성.
   # MessagesPlaceholder("chat_history") 는 대화 히스토리 유지용.
-
   qa_prompt = ChatPromptTemplate.from_messages(
       [
           ("system", system_prompt),  # 역할 정의 및 제약 조건
-          few_shot_prompt, 
+          few_shot_prompt	, 
           MessagesPlaceholder("chat_history"), # 예시 삽입
           ("human", 
-          # "현재 날짜 : 2025/5/5 "
-          #"{input}'을 사용자가 입력했어. 사용자가 입력한 주제에 대해서 넘겨준 문서를 활용하여 새로운 글을 만들어줘."
           "{input}'을 사용자가 입력했고, 이를 통해 문서를 검색했어. "
           "넘겨준 문서에 대한 기사의 정보를 활용하여 새로운 글을 만들어주되, "
           "기사에 담긴 정보를 최대한 많이 알려주는게 목표야. "
           "사용자가 입력한 주제에 대해서만 설명하지 말고, 기사에 담긴 정보를 최대한 많이 활용해서 글을 만들어줘. "
           "만약, {input}이 '바보' , '병신' , '너 이름이 뭐야?', '내 생일','몰라', 와 같이 글을 생성할 수 없는 주제라면, "
           "'422'를 반환해주세요. "
-          ),
 
+          """
+          - 모든 응답은 반드시 JSON 형식으로 작성하세요.
+          - JSON 속성 이름과 문자열 값은 반드시 큰따옴표(")로 감싸야 합니다.
+          - 작은따옴표(')를 사용하지 마세요.
+          - 응답에 불필요한 설명이나 문장은 포함하지 말고, 오직 JSON 데이터만 반환하세요.
+          - JSON이 문법 오류 없이 파싱 가능하도록 정확하게 포맷팅해 주세요.
+          - 응답의 각 키와 값은 명확하고 일관되게 작성해 주세요.
+          """
+          ),
       ]
   )
   
@@ -179,7 +184,7 @@ def get_ai_response(user_message,level,type,sessionId):
           "configurable": { "session_id": sessionId }
     }, 
     )
-  
+  print(ai_response)
   return ai_response["answer"],urls,image
 
 # def exist_session(sessionId):
@@ -209,6 +214,24 @@ def get_chat_bot(user_message,sessionId):
 
   return ai_response["answer"]
 
+def get_s_quiz_feedback_chain(user_message,sessionId):
+  exist_session(sessionId)
+  
+  llm = get_llm()
+
+  rag_chain = get_subjective_feedback(llm) 
+
+  ai_response = rag_chain.invoke( 
+    {
+      "input": user_message
+    },
+    config={
+          "configurable": {"session_id": sessionId }
+    }, 
+    )
+
+  return ai_response["answer"]
+
 def get_qna_rag_chain(llm):
   example_prompt = ChatPromptTemplate.from_messages(
       [
@@ -226,10 +249,110 @@ def get_qna_rag_chain(llm):
       "당신은 방금전에 글과 퀴즈를 생성했습니다. "
       "이후 사용자가 해당 글과 퀴즈에 대해 궁금한 점을 물어보거나 당신의 생각을 물어볼 예정입니다."
       "질문에 답변해 주세요. "
-      "필요할 경우에만 찾은 문서를 활용하도록 합니다. "
-      "만약 당신이 생성한 글이 아닌 찾은 문서 내용을 바탕으로 답변을 해야한다면, '다른 기사 내용을 따르면,' 이라는 문구를 붙여 답변해 주세요. "
+
+      """
+      당신은 초등학생이 이해하기 쉽게 친절하고 부드러운 \"~요\" 체로 답변하는 역할을 합니다.  
+      사용자가 질문을 하면 상황에 따라 아래 기준에 맞춰 답해주세요.
+      특히, 대부분의 질문은 사용자가 전에 생성된 글과 퀴즈를 보고 하는 것이니,  
+
+      답변할 때는 그 내용을 바탕으로 설명하거나 연결 지어주는 것이 좋아요.  
+      ※ 만약 질문이 글과 직접적인 관련이 없어 보이더라도,  
+      가능하다면 글의 내용을 연결해서 추가 설명이나 배경지식을 함께 알려주세요.
+
+      다음 기준에 따라 상황에 맞게 답변해 주세요:
+
+      1. 질문에 명확히 답할 수 있을 때  
+      → 글과 연결된 맥락을 먼저 짚어주고, 그 후 질문에 답하세요.  
+      예시나 비유도 함께 제시해 주세요.  
+      > 예) "방금 글에서 ~라는 이야기가 있었죠? 거기서 나온 단어예요. 예를 들어, ~처럼 생각하면 쉬워요."
+
+      2. 질문에 대해 현재 글만으로는 정확한 답을 알 수 없을 때  
+      → 솔직하게 그렇게 말해주되, 아이가 스스로 생각해볼 수 있도록 도와주세요.  
+      > 예) "이건 지금 글만으로는 확실히 알기 어려워요. 그래도 학생은 어떻게 생각하나요?"
+
+      3. 아이가 오해했거나 잘못 이해한 질문일 경우  
+      → 정답을 알려주되, 부드럽게 다르게 설명해 주세요.  
+      > 예) "조금 다르게 이해할 수도 있어요. 다시 쉽게 설명해 줄게요~"
+
+      4. 질문이 너무 어렵거나 추상적일 때  
+      → 걱정하지 말라고 격려하고, 쉽게 예시나 비유로 설명해 주세요.  
+      > 예) "이건 조금 어려운 질문이지만, 퍼즐을 하나하나 맞추듯이 배우면 돼요!"
+
+      5. 필요한 경우에는, 스스로 생각해볼 수 있도록 질문으로 유도하고 격려하기  
+      → 여러 관점이 있을 수 있다는 점을 말해주고, 아이의 생각을 들어보세요.  
+      > 예) "이건 정해진 답이 없을 수도 있어요. 학생이라면 어떻게 할 것 같나요?"
+
+      6. 비유나 예시를 꼭 활용해서 쉽게 풀어 설명하기  
+      → 친근한 경험(자전거, 친구, 놀이터 등)을 비유로 사용해 주세요.  
+      > 예) "이건 친구랑 놀이 규칙 정하는 거랑 비슷해요~"
+
+      또한, **질문이 글 내용과 직접 연결되지 않더라도**, 가능하다면 글에서 다뤘던 개념이나 내용을 바탕으로 자연스럽게 연관 지어 설명해 주세요.  
+      > 예) "이번 글에서도 비슷한 개념이 나왔는데요~", "글에서 다뤘던 ~과도 관련이 있어요."
+
+      항상 친절하고 따뜻한 말투로, 아이가 더 깊이 배우고 생각할 수 있도록 도와주세요.
+
+      질문에 답할 때는 꼭 학생이 이해하기 쉽도록 천천히, 친절하게, 그리고 생각할 거리를 주는 답변을 해 주세요.
+      """
       "\n\n"
       #"{context}"
+  )
+  
+  qa_prompt = ChatPromptTemplate.from_messages(
+      [
+          ("system", system_prompt),  
+          few_shot_prompt,
+          MessagesPlaceholder("chat_history"), 
+          ("human", "{input}"), 
+      ]
+  )
+
+  #llm_chain = RunnableSequence(qa_prompt, llm)
+  llm_chain = (
+        qa_prompt
+        | llm
+        | (lambda text: {"answer": text})
+  )
+
+  conversational_rag_chain = RunnableWithMessageHistory(
+      llm_chain,
+      get_session_history,  
+      input_messages_key="input",  
+      history_messages_key="chat_history",  
+      output_messages_key="answer", 
+  )
+
+  return conversational_rag_chain
+
+# 주관식 채점
+def get_subjective_feedback(llm):
+  example_prompt = ChatPromptTemplate.from_messages(
+      [
+          ("human", "{input}"),
+          
+          ("ai", "{answer}"),
+      ]
+  )
+  few_shot_prompt = FewShotChatMessagePromptTemplate(
+      example_prompt=example_prompt,
+      examples= subjective_quiz_feedback_examples,
+  )
+
+  system_prompt = (
+    "당신은 사용자가 이전에 작성한 thinking_question에 대한 답변에 피드백을 제공해야 해. "
+    "피드백은 다음 요소들을 포함해야 해:\n"
+    "1. 잘한 점 - 의견에서 긍정적인 부분과 공감하는 내용을 짧고 명확하게 말해줘. (문장 구성, 설득력, 내용 등) \n"
+    "2. 아쉬운 점 / 개선할 점 - 부족한 부분이나 보완할 점을 구체적으로 지적해줘. (문장 구성, 설득력, 내용 등)"
+    "만약 설득력이나 내용이 부족하다면 왜 그렇게 생각하는지 이유를 좀 더 설명하면 좋겠다고 말해줘.\n"
+    "3. 제안 - 의견에 추가하면 좋을 내용이나 다른 관점, 보완책을 제안해줘.\n"
+    "4. 총평 - 전체적인 종합적으로 정리해서 총평을 만들어주면돼. \n"
+    "5. 보완 문장 예시 - 위 내용을 반영해서 더 완성도 높은 문장 예시를 짧게 작성해줘.\n\n"
+    "주의사항:\n"
+    "- 답변은 학생에게 친근한 말투인 ‘~요’ 체로 작성해줘.\n"
+    "- 피드백은 질문으로 끝나지 않도록 하고, 명확히 피드백임을 알 수 있게 작성해줘.\n"
+    "- 공감하는 부분과 개선할 점을 반드시 모두 포함해야 해.\n"
+    "- 답변은 이해하기 쉽게 작성해줘."
+    "\n\n"
+    #"{context}"
   )
   
   qa_prompt = ChatPromptTemplate.from_messages(

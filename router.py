@@ -4,12 +4,11 @@ import json
 import re
 from make_response import make_json_response
 
-
 router = APIRouter(
     prefix="/v1",
 )
 
-
+# 주관식 -> 생각해보세요 문제. 단답형 문제(일반 내용 문제)
 @router.get("/create")
 def makePesonalArticle(
     topic: str = Query(..., description="주제"),
@@ -48,7 +47,6 @@ def makePesonalArticle(
         return make_json_response(message="JSONDecodeError",status = 500)
     
 
-
 @router.get("/chat")
 def makePesonalArticle(
     question: str = Query(..., description="주제"),
@@ -59,6 +57,19 @@ def makePesonalArticle(
     except KeyError as e:
         return make_json_response(message=e.args[0],status = 404)
     return make_json_response(data= answer)
+
+@router.get("/thinking-question-feedback")
+def makePesonalArticle(
+    answer: str = Query(..., description="주관식 답변"),
+    sessionId: str = Query(..., description="세션 ID")
+):
+    print("/thinking-question-feedback 호출")
+    try:
+        answer= llm.get_s_quiz_feedback_chain(answer,sessionId).text()
+    except KeyError as e:
+        return make_json_response(message=e.args[0],status = 404)
+    return make_json_response(data= answer)
+
 
 @router.get("/history")
 def getStore(
