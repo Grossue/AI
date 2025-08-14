@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from config import *
 import time
 import re
-
+import json
 # LangChain OpenAI 관련 모듈
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 
@@ -32,7 +32,7 @@ from redis_client import redis_client
 
 store = {}
 
-def get_llm(model="gpt-4o"):
+def get_llm(model="chatgpt-4o-latest"): # gpt-5-mini gpt-4o gpt-4.1-mini chatgpt-4o-latest
   llm = ChatOpenAI(model=model)
   return llm
 
@@ -55,7 +55,7 @@ def get_retriever():
   
   database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding, text_key="content")
   
-  retriever = database.as_retriever(search_kwargs={'k': 3})
+  retriever = database.as_retriever(search_kwargs={'k': 4})
 
   return retriever
 
@@ -72,7 +72,7 @@ def get_rag_chain(llm,level,type):
   # FewShotChatMessagePromptTemplate : 질문/답변 예시들을 포함하는 few-shot 학습 형식 프롬프트
   few_shot_prompt = FewShotChatMessagePromptTemplate(
       example_prompt = example_prompt,
-      examples = create_article_examples_LEVEL1 if (type == "GENERAL" and level == "level1") else (create_article_examples_LEVEL2 if type == "GENERAL" else create_article_script_examples)
+      examples = create_article_examples_LEVEL1 if (type == "GENERAL" and level == "LEVEL1") else (create_article_examples_LEVEL2 if type == "GENERAL" else create_article_script_examples)
       #create_article_examples if type == "GENERAL" else create_article_script_examples
   )
 
@@ -137,6 +137,7 @@ def get_rag_chain(llm,level,type):
 def get_ai_response(user_message,level,type,sessionId):
   
   llm = get_llm()
+  llm = llm.bind(response_format={"type": "json_object"})
 
   retriever = get_retriever()
   
@@ -150,19 +151,25 @@ def get_ai_response(user_message,level,type,sessionId):
   print(f"retriever 소요 시간: {end_time - start_time:.4f}초")
   
   urls = []
-  urls = [{"title" : doc.metadata['title'] , "url" : doc.metadata['url']} for doc in docs]
+  urls = [{"title" : doc.metadata['title'] , "url" : doc.metadata['origin_link']} for doc in docs]
 
-  image = ''
+  images = []
   for doc in docs:
         if len(doc.metadata["image"]) > 0:
-            image = doc.metadata["image"]
-            break
+            images.append({
+              "image" : doc.metadata["image"],
+              "image_desc" : doc.metadata["image_desc"],
+              "origin_link" : doc.metadata["origin_link"]
+            })
+            
           
   for doc in docs:
     date = doc.metadata.get("date_time", "")
-    url = doc.metadata.get("url","")
+    #url = doc.metadata.get("url","")
+    #url = doc.metadata.get("origin_link","")
+    url = doc.metadata.get("origin_link", "") or doc.metadata.get("url", "")
     content = doc.page_content 
-
+    image_desc = doc.metadata.get("image_desc", "")
     # 문장 단위로 분리 (정규식 사용, 기본적인 마침표 기준)
     sentences = re.split(r'(?<=[.!?])\s+', content.strip())
     
@@ -185,7 +192,8 @@ def get_ai_response(user_message,level,type,sessionId):
     }, 
     )
   print(ai_response)
-  return ai_response["answer"],urls,image
+
+  return ai_response["answer"],urls,images
 
 # def exist_session(sessionId):
 #   if sessionId not in store:
