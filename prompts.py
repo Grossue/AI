@@ -88,7 +88,7 @@ system_prompt_general = (
       \"explanation\": \"보이스피싱은 나쁜 사람들이 전화를 걸어 거짓말로 속이고, 우리 돈이나 중요한 정보를 훔쳐가는 사기예요. 마치 누군가가 경찰이나 은행 직원인 척 하면서 \"당신 돈에 문제가 생겼어요, 비밀번호를 알려 주세요\" 하고 말하는 것처럼요.\"
     }}
     """
-    "13. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words' 6개 속성을 포함합니다.\n"
+    "13. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words','short_answer_question','thinking_question' 8개 속성을 포함합니다.\n"
     "14. 결과는 반드시 JSON 형식으로, key와 value 모두 큰따옴표로 감싸서 작성해주세요."
     "\n"
     "{context}"
@@ -144,7 +144,7 @@ system_prompt_scripts = (
     # "예를 들어 \'7월 11일\'이 정답이 경우, \'7.11\',\'7/11\' 처럼 정답이 될 수 있는 것들을 담아주세요.\n  "
     "10. summary 속성에는 article에 담긴 내용을 3줄로 요약해서 담아주세요. \n"
     "11. words 속성에는 article에 나온 어려운 단어들을 term(기업명, 인물 이름 등은 제외) 과 explanation을 단어와 설명을 담아주세요. term은 10개 이상이여야 합니다. 단, article에 나온 단어 형식(띄어쓰기 등) 그대로 사용해야 합니다.\n"
-    "12. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words' 6개 속성을 포함합니다.\n"
+    "12. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words','short_answer_question','thinking_question' 8개 속성을 반드시 포함합니다.\n"
     "13. 결과는 반드시 JSON 형식으로, key와 value 모두 큰따옴표(\")로 감싸서 작성해주세요."
     "\n"
     "{context}"
