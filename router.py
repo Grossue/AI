@@ -4,6 +4,9 @@ import json
 import re
 from make_response import make_json_response
 import time
+from models import UserHistoryRequest
+from recomendation import get_recommendations
+from typing import List
 
 router = APIRouter(
     prefix="/v1",
@@ -152,7 +155,6 @@ def makePesonalArticle(
 
     return make_json_response(data= data)
 
-
 @router.get("/recommend")
 def getRecommendation(
     content: str = Query(..., description="생성된 기사 전문")
@@ -162,3 +164,7 @@ def getRecommendation(
         return make_json_response(data=result)
     except Exception as e:
         return make_json_response(message=str(e), status=500)
+
+@router.post("/recommend", response_model=List[str])
+def recommend(request: UserHistoryRequest):
+    return get_recommendations(request.history)
