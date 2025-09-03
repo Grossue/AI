@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+import numpy as np
+from sklearn.cluster import KMeans
 from config import *
 import time
 import re
@@ -18,7 +20,8 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # LangChain Chains 관련 모듈
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import RetrievalQA, LLMChain, create_history_aware_retriever, create_retrieval_chain
+from langchain.chains import RetrievalQA, create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.llm import LLMChain
 
 # LangChain Community 모듈
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -51,7 +54,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 def get_retriever():
   embedding = OpenAIEmbeddings(model='text-embedding-3-large')
 
-  index_name = 'tax-index'
+  index_name = 'ss-news'
   
   database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding, text_key="content")
   

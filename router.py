@@ -4,6 +4,9 @@ import json
 import re
 from make_response import make_json_response
 import time
+from models import UserHistoryRequest
+from recomendation import get_recommendation, get_recommendations
+from typing import List
 
 router = APIRouter(
     prefix="/v1",
@@ -129,4 +132,39 @@ def deleteHistory(
     
     return make_json_response(message="성공적으로 세션을 삭제했습니다.")
 
+@router.get("/test")
+def makePesonalArticle(
+    topic: str = Query(..., description="주제"),
+    sessionId: str = Query(..., description="세션 ID"),
+    level: str = Query(..., description="글 난이도"),
+    type: str =  Query(0, description="글 타입 - 기본값은 0, 대본일 경우 1")
+):
+    print("/test 호출")
+    data = {}
 
+    if topic=="바보":
+        return make_json_response(data=None, message="입력한 주제에 대하여 글을 생성할 수 없습니다.",status = 422)
+    
+    if type=="GENERAL" :
+        with open('general_result.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+    if type=="SCRIPT" :
+        with open('script_result.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+    return make_json_response(data= data)
+
+@router.get("/recommend")
+def getRecommendation(
+    content: str = Query(..., description="생성된 기사 전문")
+):
+    try:
+        result = get_recommendation(content)
+        return make_json_response(data=result)
+    except Exception as e:
+        return make_json_response(message=str(e), status=500)
+
+@router.post("/recommend", response_model=List[str])
+def recommend(request: UserHistoryRequest):
+    return get_recommendations(request.history)
