@@ -102,3 +102,12 @@ def makePesonalArticle(
     return make_json_response(data= data)
 
 
+@router.get("/recommend")
+def getRecommendation(
+    content: str = Query(..., description="생성된 기사 전문")
+):
+    try:
+        result = llm.get_recommendation(content)
+        return make_json_response(data=result)
+    except Exception as e:
+        return make_json_response(message=str(e), status=500)
