@@ -5,7 +5,7 @@ import re
 from make_response import make_json_response
 import time
 from models import UserHistoryRequest
-from recomendation import get_recommendations
+from recomendation import get_recommendation, get_recommendations
 from typing import List
 
 router = APIRouter(
@@ -160,7 +160,7 @@ def getRecommendation(
     content: str = Query(..., description="생성된 기사 전문")
 ):
     try:
-        result = llm.get_recommendation(content)
+        result = get_recommendation(content)
         return make_json_response(data=result)
     except Exception as e:
         return make_json_response(message=str(e), status=500)
