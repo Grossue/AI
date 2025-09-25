@@ -88,44 +88,41 @@ system_prompt_scripts = (
     """
     8. thinking_question는 서술형 사고력 문제입니다.  
     thinking_question 속에는 비판적인 사고를 자극하는 서술형 문제를 만들어 주세요.  
-
-    예)  
-    - AI 기술이 금융 사기 방지에 효과적일까요? 그 한계는 무엇일까요?  
-    - AI가 금융 사기 탐지에 의존할수록 사람의 역할은 어떻게 변화해야 할까요?  
-    - 개인 정보 보호와 AI 금융 사기 탐지 기술 사이에서 균형을 맞추려면 어떤 노력이 필요할까요?  
-    - 금융 사기 예방을 위해 개인이 가져야 할 경각심과 행동에는 어떤 것들이 있을까요?  
-    - 앞으로 AI와 사람의 협력이 금융 안전망에 어떤 변화를 가져올지 어떻게 생각하나요?
-
     thinking_question의 example_answers에는 최소 3개 이상의 서로 다른 입장이나 해결책을 담아 주세요. 
     (example_answers는 문자열 리스트입니다.) 
     단순히 문장만 다르게 표현하는 것이 아니라, 예를 들어 **법적 대응**, **윤리 교육**, **기술 시스템 강화** 등 각기 다른 시각과 방안을 포함해야 합니다.  
-
-    각 답변은 다음 요소를 포함하도록 구성해주세요:  
-    1. 자신의 주장이나 해결책  
-    2. 그 주장을 뒷받침하는 이유와 구체적인 예시 또는 자신의 경험, 혹은 상상 속 상황  
-    3. 예상되는 반대 의견  
-    4. 그에 대한 자신의 반박 또는 생각  
-
-    또한, 답변은 초등학생부터 고등학생까지 이해하기 쉽고 자연스럽게, 마치 학생들이 말하듯 친근한 말투로 작성해 주세요.  
-    학생들이 자신의 경험이나 생각을 자유롭게 표현할 수 있도록 격려하는 느낌이면 더욱 좋습니다.  
-
-    이런 구성을 통해 학생들이 다양한 생각을 접하고 비판적으로 사고하며, 자신의 의견을 논리적으로 표현하는 데 도움을 줍니다.  
-
-    예를 들어 찬성, 반대, 중립, 현실적 어려움, 미래 전망 등 다양한 시각을 포함해 주세요.
+    각 답변은 모두 다른 의견이여야 합니다. (예: 찬성, 반대, 중립, 현실적 어려움, 미래 전망 등)
     """
-
     "9. 단답형 문제인 short_answer_question 반드시 포함시켜 주세요. "
     "단답형 문제는 글의 중심 내용이나 글에서 다루는 주요 주제에 대해 묻는 질문이여야하고, 정답이 명사여야 합니다. "
     """
     질문은 글의 주요 내용을 잘 이해했는지 확인할 수 있는 문제여야합니다. 
     """
     "question에는 문제 내용을, example_answers에는 정답을 리스트 형태로 담아주세요. "
-    # "예를 들어 \'7월 11일\'이 정답이 경우, \'7.11\',\'7/11\' 처럼 정답이 될 수 있는 것들을 담아주세요.\n  "
     "10. summary 속성에는 article에 담긴 내용을 3줄로 요약해서 담아주세요. \n"
     "11. words 속성에는 article에 나온 어려운 단어들을 term(기업명, 인물 이름 등은 제외) 과 explanation을 단어와 설명을 담아주세요. term은 10개 이상이여야 합니다. 단, article에 나온 단어 형식(띄어쓰기 등) 그대로 사용해야 합니다.\n"
     "12. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words','short_answer_question','thinking_question' 8개 속성을 반드시 포함합니다.\n"
     "13. 결과는 반드시 JSON 형식으로, key와 value 모두 큰따옴표(\")로 감싸서 작성해주세요."
     "\n"
+
+  """
+  JSON 구조는 다음과 같습니다:
+  {{
+    "title": "string",
+    "article": [{{"who":"teacher/student","content":"string"}}],
+    "quiz": [
+      {{"question": "string", "options": ["string", "string", "string"], "correct_answer": int}}
+    ],
+    "short_answer_question": {{"question": "string", "example_answers": ["string", "string"]}},
+    "thinking_question": {{"question": "string", "example_answers": ["string", "string", "string"]}},
+    "words": [{{
+      "term": "string",
+      "explanation": "string"
+    }}],
+    "summary": "string",
+    "url": ["string", "string"]
+  }}
+  """
     "{context}"
   )
 
