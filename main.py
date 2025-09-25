@@ -6,6 +6,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import router
 from dotenv import load_dotenv
 from error_handler import register_exception_handlers
+import logging
 
 app = FastAPI()
 
@@ -22,6 +23,11 @@ app.add_middleware(
 )
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,  # INFO 이상 로그만 출력
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 register_exception_handlers(app)
 
