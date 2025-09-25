@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-import llm
+import article_service
 import json
 import re
 from make_response import make_json_response
@@ -7,12 +7,11 @@ import time
 from models import UserHistoryRequest
 from recomendation import get_recommendation, get_recommendations
 from typing import List
-
+from error_handler import UnprocessableEntityException
 router = APIRouter(
     prefix="/v1",
 )
 
-# 주관식 -> 생각해보세요 문제. 단답형 문제(일반 내용 문제)
 @router.get("/create")
 def makePesonalArticle(
     topic: str = Query(..., description="주제"),
@@ -40,44 +39,21 @@ def makePesonalArticle(
         
         return make_json_response(data=data)
 
-
-    result,urls,images = llm.get_ai_response(topic,level,type,sessionId)
-
-    if result=="422":
-        return make_json_response(data=None, message="입력한 주제에 대하여 글을 생성할 수 없습니다.",status = 422)
-    
-    start_index = result.find('{')
-    end_index = result.rfind('}')
-
-    json_string = result[start_index:end_index+1]
-    json_string = re.sub(r'(?<!\\)(?<!\n)\n(?!\n)(?=[^"\n]*?")', ' ', json_string)
-
-    json_data = {}
-    
-    data = None
-        
     try:
-        # urls = [{"title" : doc.metadata['title'] , "url" : doc.metadata['origin_link']} for doc in docs]
-        # JSON 문자열 파싱
-        json_data = json.loads(json_string,strict=False)
-
-
-        json_data['image'] = {}
-        json_data['image']['image_url'] = next((img["image"] for img in images if img.get("origin_link") in json_data["url"]), None)
-        json_data['image']['image_desc'] = next((img["image_desc"] for img in images if img.get("origin_link") in json_data["url"]), None)
-        json_data['image']['image_source'] = next((img["origin_link"] for img in images if img.get("origin_link") in json_data["url"]), None)
-        
-        # url, image를 llm에서 넘겨준 것이 아닌, 검색된 기사에서 직접 받아서 사용
-        json_data['url'] = [item for item in urls if item["url"] in json_data["url"]] #urls
-        #json_data['image_url'] = image
-
-        data = json_data
-
-        return make_json_response(data=data)
-
-    except json.JSONDecodeError as e:
-        print("JSONDecodeError 발생:", e) # e.doc
+        result = article_service.get_article(topic,level,type,sessionId)
+        return make_json_response(data=result)
+    
+    except json.JSONDecodeError:
+        print("상위에서 JSONDecodeError 잡음!")
         return make_json_response(message="JSONDecodeError",status = 500)
+    
+    except UnprocessableEntityException as e:
+        return make_json_response(message=str(e.detail), status=422)
+
+    except ValueError as e:
+        print("상위에서 커스텀 예외 잡음:", e)
+        return make_json_response(message="ValueError",status = 500)
+
     
 
 @router.get("/chat")
@@ -91,10 +67,11 @@ def makePesonalArticle(
         elif question.strip().startswith("가상화폐") :
             answer = "좋은 질문이에요! 😊 이건 아주 많은 어른들도 궁금해하는 거예요~  \n우리 쉬운 예시로 천천히 설명해볼게요!\n\n---\n\n이번 글에서 배운 것처럼, 가상화폐는 인터넷에만 있는 디지털 돈이에요.  \n그런데 \"인터넷에 있는 숫자\"가 어떻게 돈처럼 가치가 생기고,  \n왜 사람들이 사고팔까요? 🤔\n\n---\n\n🔍 비유로 설명해볼게요!\n\n한번 이런 놀이를 생각해 보세요~  \n친구들끼리 게임 아이템을 서로 주고받을 수 있어요.  \n어떤 아이템은 구하기 어려워서 가치가 높고,  \n그래서 어떤 친구는 진짜 돈을 주고서라도 사려고 해요.  \n\n> 이럴 땐, 그 아이템 자체가 돈처럼 쓰이는 것 같죠?\n\n---\n\n가상화폐도 비슷해요!  \n- 만들어내기 어렵고(계산을 엄청 많이 해야 해요!),  \n- 숫자가 한정되어 있어서 희귀하고,  \n- 컴퓨터 기술로 복제나 위조가 안 되게 안전하게 만들어졌어요!\n\n그래서 사람들은 말해요:  \n“이건 믿을 수 있고, 전 세계 누구랑도 바로 주고받을 수 있으니까,  \n돈처럼 써도 되겠다!”\n\n---\n\n📈 사람들이 믿고 사용하고, 또 사려고 하니까  \n가치가 생기고,  \n수요가 많을수록 가격이 올라가는 구조예요!\n\n그래서 어떤 사람은 미리 샀다가  \n가격이 오르면 되팔아서 돈을 벌기도 해요. 마치 주식처럼요!\n\n---\n\n📌정리하자면,\n\n가상화폐는  \n- 컴퓨터 속에서 만들어진 희귀한 디지털 자산이고,  \n- 사람들이 서로 쓰고 싶어 하기 때문에  \n- 돈처럼 가격이 생기고, 사거나 팔 때 진짜 돈으로 바꿀 수 있는 거예요.\n\n---\n\n조금 어려울 수도 있지만, 마치 게임 속 희귀템이  \n진짜 돈처럼 가치가 생기는 걸 떠올리면 이해하기 쉬워요~ 😊  \n그래도 언제나 조심해서 사용해야 해요.  \n\n더 궁금한 게 있으면 또 물어봐 주세요!"
         else : 
-            answer= llm.get_chat_bot(question,sessionId).text()
+            answer= article_service.get_chat_bot(question,sessionId).text()
     except KeyError as e:
         return make_json_response(message=e.args[0],status = 404)
     return make_json_response(data= answer)
+
 
 @router.get("/thinking-question-feedback")
 def makePesonalArticle(
@@ -109,51 +86,10 @@ def makePesonalArticle(
         return make_json_response(data= answer)
 
     try:
-        answer= llm.get_s_quiz_feedback_chain(answer,sessionId).text()
+        answer= article_service.get_s_quiz_feedback_chain(answer,sessionId).text()
     except KeyError as e:
         return make_json_response(message=e.args[0],status = 404)
     return make_json_response(data= answer)
-
-
-@router.get("/history")
-def getStore(
-):
-    return llm.get_store()
-
-@router.delete("/history")
-def deleteHistory(
-    sessionId: str = Query(..., description="세션 ID")
-):
-    try:
-        llm.delete_history(sessionId)
-    
-    except KeyError as e:
-        return make_json_response(message=e.args[0],status = 404)
-    
-    return make_json_response(message="성공적으로 세션을 삭제했습니다.")
-
-@router.get("/test")
-def makePesonalArticle(
-    topic: str = Query(..., description="주제"),
-    sessionId: str = Query(..., description="세션 ID"),
-    level: str = Query(..., description="글 난이도"),
-    type: str =  Query(0, description="글 타입 - 기본값은 0, 대본일 경우 1")
-):
-    print("/test 호출")
-    data = {}
-
-    if topic=="바보":
-        return make_json_response(data=None, message="입력한 주제에 대하여 글을 생성할 수 없습니다.",status = 422)
-    
-    if type=="GENERAL" :
-        with open('general_result.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-    if type=="SCRIPT" :
-        with open('script_result.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-    return make_json_response(data= data)
 
 @router.get("/recommend")
 def getRecommendation(
