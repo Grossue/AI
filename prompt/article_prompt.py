@@ -50,8 +50,8 @@ system_prompt_general = (
   10. 'short_answer_question'은 글의 주요 개념을 묻는 단답형 문제, 정답은 명사로 작성하세요.
   11. 'summary'는 article을 3줄 요약하세요.
   12. 'words'에는 어려운 단어 10개 이상을 term/explanation 형식으로 작성하세요. 설명은 초등학생도 이해할 수 있게 쉽게 쓰세요.
-  13. 최종 결과는 JSON 형식으로 작성하며, 키와 값은 큰따옴표(")로 감싸야 하고, 불필요한 텍스트는 출력하지 마세요.
-
+  13. 최종 결과는 JSON 형식으로 구성해주세요: 'title', 'article', 'quiz', 'url','summary','words','short_answer_question','thinking_question' 8개 속성을 반드시 포함합니다.
+  14. 결과는 반드시 JSON 형식으로, key와 value 모두 큰따옴표(\")로 감싸서 작성해주세요.
   JSON 구조는 다음과 같습니다:
   {{
     "title": "string",
