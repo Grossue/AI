@@ -16,10 +16,10 @@ def get_retriever():
   return retriever
 
 
-def retrieve_docs(user_message):
+async def retrieve_docs(user_message):
     retriever = get_retriever()
     start_time = time.time()
-    docs = retriever.invoke(user_message)
+    docs = await retriever.ainvoke(user_message)
     end_time = time.time()
     print(f"retriever 소요 시간: {end_time - start_time:.4f}초")
     return docs

@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 
-def get_llm(model="chatgpt-4o-latest"): # gpt-5-mini gpt-4o gpt-4.1-mini chatgpt-4o-latest
+def get_llm(model="gpt-4.1"): # gpt-5-mini gpt-4o gpt-4.1-mini chatgpt-4o-latest
   llm = ChatOpenAI(model=model)
   return llm
 

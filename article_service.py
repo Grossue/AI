@@ -11,52 +11,52 @@ from retriever import *
 import json
 from error_handler import UnprocessableEntityException
 
-def get_chat_bot(user_message,sessionId):
+async def get_chat_bot(user_message,sessionId):
     exist_session(sessionId)
-  
+
     llm = get_llm()
 
     rag_chain = build_default_rag_chain(llm, qna_examples, qna_system_prompt)
-    
-    ai_response = rag_chain.invoke( 
+
+    ai_response = await rag_chain.ainvoke(
         {
         "input": user_message
         },
         config={
             "configurable": {"session_id": sessionId }
-        }, 
+        },
     )
     return ai_response["answer"]
 
-def get_s_quiz_feedback_chain(user_message,sessionId):
+async def get_s_quiz_feedback_chain(user_message,sessionId):
     exist_session(sessionId)
-    
+
     llm = get_llm()
 
     rag_chain = build_default_rag_chain(llm, subjective_quiz_feedback_examples, feedback_system_prompt)
-    
-    ai_response = rag_chain.invoke( 
+
+    ai_response = await rag_chain.ainvoke(
         {
         "input": user_message
         },
         config={
             "configurable": {"session_id": sessionId }
-        }, 
+        },
         )
 
     return ai_response["answer"]
 
 
-def get_article(user_message, level, type, sessionId):
+async def get_article(user_message, level, type, sessionId):
     llm = get_json_llm()
     rag_chain = build_create_article_rag_chain(llm, level, type)
 
-    docs = retrieve_docs(user_message)
+    docs = await retrieve_docs(user_message)
     urls = extract_urls(docs)
     images = extract_images(docs)
     docs = preprocess_docs(docs)
 
-    ai_response = rag_chain.invoke(
+    ai_response = await rag_chain.ainvoke(
         {"input": user_message, "context": docs},
         config={"configurable": {"session_id": sessionId}},
     )
